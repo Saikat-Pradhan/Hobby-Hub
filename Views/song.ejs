@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include("./Partials/head") %>
+  <title>Song</title>
+</head>
+<body>
+  <%- include("./Partials/nav") %>
+
+  <div class="container">
+    <div class="container mt-4">
+      <h1><%= song.title %></h1>
+
+      <video width="300" height="500px" controls class="mb-3">
+        <source src="<%= song.videoFile %>" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <pre class="mt-3"><%= song.body %></pre>
+    </div>
+
+    <div class="container mt-4">
+      <img src="<%= song.createdBy.profileImageURL %>" width="25px" style="border-radius: 20px;">
+      <%= song.createdBy.fullName %>
+    </div>
+
+    <div class="container mt-4">
+      <form action="/song/comment/<%= song._id %>" method="post">
+        <h2>Comments (<%= songComments.length %>)</h2>
+        <div class="form-floating">
+          <textarea class="form-control" placeholder="Leave a comment here" id="floatingTextarea2"
+            name="content" style="height: 100px"></textarea>
+          <label for="floatingTextarea2">Comments</label>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Post Comment</button>
+      </form>
+    </div>
+
+    <div class="container mt-3">
+      <% songComments.forEach(comment => { %>
+        <div class="mb-2">
+          <img src="<%= comment.createdBy.profileImageURL %>" width="25px" style="border-radius: 20px;">
+          <strong><%= comment.createdBy.fullName %></strong>
+          <pre class="mt-1"><%= comment.content %></pre>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <%- include("./Partials/scripts") %>
+</body>
+</html>

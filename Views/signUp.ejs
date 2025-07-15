@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include("./Partials/head") %>
+        <title>SignUp</title>
+</head>
+
+<body>
+    <%- include("./Partials/nav") %>
+
+        <div class="container mt-4">
+            <form action="/user/signup" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="fullName" class="form-label">Full name</label>
+                    <input type="text" class="form-control" name="fullName" id="fullName" aria-describedby="fullName">
+                </div>
+                <div class="mb-3">
+                    <label for="exampleInputEmail1" class="form-label">Email address</label>
+                    <input type="email" class="form-control" name="email" id="exampleInputEmail1"
+                        aria-describedby="emailHelp">
+                    <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Interested Fields</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="interestedFields[]" value="ALL"
+                            id="fieldAll">
+                        <label class="form-check-label" for="fieldAll">ALL</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="interestedFields[]" value="SINGING"
+                            id="fieldSinging">
+                        <label class="form-check-label" for="fieldSinging">SINGING</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="interestedFields[]" value="DANCING"
+                            id="fieldDancing">
+                        <label class="form-check-label" for="fieldDancing">DANCING</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="interestedFields[]" value="DRAWING"
+                            id="fieldDrawing">
+                        <label class="form-check-label" for="fieldDrawing">DRAWING</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="interestedFields[]" value="PHOTOGRAPHY"
+                            id="fieldPhotography">
+                        <label class="form-check-label" for="fieldPhotography">PHOTOGRAPHY</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="interestedFields[]" value="CODING"
+                            id="fieldCoding">
+                        <label class="form-check-label" for="fieldCoding">CODING</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="exampleInputPassword1" class="form-label">Password</label>
+                    <input type="password" class="form-control" name="password" id="exampleInputPassword1">
+                </div>
+                <div class="mb-3">
+                    <label for="profileImage" class="form-label">Profile Image</label>
+                    <input type="file" class="form-control" id="profileImage" name="profileImage"
+                        aria-describedby="profileImage">
+                    <div id="profileImage" class="form-text">There are not second chance for update your profile image
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </form>
+        </div>
+
+        <%- include("./Partials/scripts") %>
+</body>
+
+</html>

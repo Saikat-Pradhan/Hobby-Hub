@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include("./Partials/head") %>
+  <title>Painting</title>
+</head>
+<body>
+  <%- include("./Partials/nav") %>
+
+  <div class="container">
+    <div class="container mt-4">
+      <h1><%= painting.title %></h1>
+      <img src="<%= painting.coverImageURL %>" width="400px" class="mb-3">
+      <pre class="mt-3"><%= painting.body %></pre>
+    </div>
+
+    <div class="container mt-4">
+      <img src="<%= painting.createdBy.profileImageURL %>" width="25px" style="border-radius: 20px;">
+      <%= painting.createdBy.fullName %>
+    </div>
+
+    <div class="container mt-4">
+      <form action="/painting/comment/<%= painting._id %>" method="post">
+        <h2>Comments (<%= paintingComments.length %>)</h2>
+        <div class="form-floating">
+          <textarea class="form-control" placeholder="Leave a comment here" id="floatingTextarea2"
+            name="content" style="height: 100px"></textarea>
+          <label for="floatingTextarea2">Comments</label>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Post Comment</button>
+      </form>
+    </div>
+
+    <div class="container mt-3">
+      <% paintingComments.forEach(comment => { %>
+        <div class="mb-2">
+          <img src="<%= comment.createdBy.profileImageURL %>" width="25px" style="border-radius: 20px;">
+          <strong><%= comment.createdBy.fullName %></strong>
+          <pre class="mt-1"><%= comment.content %></pre>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <%- include("./Partials/scripts") %>
+</body>
+</html>
