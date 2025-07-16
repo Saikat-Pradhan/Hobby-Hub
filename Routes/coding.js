@@ -29,8 +29,13 @@ router.post("/add", upload.fields([
 ]), async (req, res) => {
   try {
     const { title, body } = req.body;
-    const coverImage = req.files["coverImage"][0];
-    const codeFile = req.files["codeFile"][0];
+
+    const coverImage = req.files?.["coverImage"]?.[0];
+    const codeFile = req.files?.["codeFile"]?.[0];
+
+    if (!codeFile) {
+      return res.status(400).send("Code file is required.");
+    }
 
     // 📄 PDF creation
     const codeFilePath = path.resolve("./Public/Uploads", codeFile.filename);
@@ -52,7 +57,9 @@ router.post("/add", upload.fields([
         title,
         body,
         createdBy: req.user._id,
-        coverImageURL: `/Uploads/${coverImage.filename}`,
+        coverImageURL: coverImage
+          ? `/Uploads/${coverImage.filename}`
+          : `/Uploads/default.jpg`,
         codeFile: `/Uploads/${codeFile.filename}`,
         codePDF: `/Uploads/${pdfFilename}`,
       });
@@ -74,6 +81,17 @@ router.get("/:id", async (req, res) => {
     res.render("coding", { user: req.user, coding, codingComments });
   } catch (err) {
     console.error("Fetch error:", err);
+    res.status(404).send("Entry not found.");
+  }
+});
+
+// 🗑️ Delete coding entry
+router.get("/delete/:id", async (req, res) => {
+  try {
+    await Coding.findByIdAndDelete(req.params.id);
+    res.redirect("/user/profile");
+  } catch (err) {
+    console.error("Delete error:", err);
     res.status(404).send("Entry not found.");
   }
 });

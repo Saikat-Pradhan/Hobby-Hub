@@ -12,7 +12,7 @@ const paintingSchema = new Schema(
     },
     coverImageURL: {
       type: String,
-      required: true,
+      required: false,
     },
     createdBy: {
       type: Schema.Types.ObjectId,
