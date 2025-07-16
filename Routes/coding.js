@@ -1,21 +1,17 @@
 const { Router } = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const PDFDocument = require("pdfkit");
+const streamifier = require("streamifier");
 
 const Coding = require("../Models/coding");
 const CodingComment = require("../Models/codingComment");
+const { cloudinary, upload: imageUpload } = require("../Utils/cloudinary"); // ✅ renamed to avoid conflict
 
 const router = Router();
 
-// 🔧 Multer storage setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.resolve("./Public/Uploads")),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-});
-
-const upload = multer({ storage });
+// 🔧 Memory storage for code file
+const memoryStorage = multer.memoryStorage();
+const codeUpload = multer({ storage: memoryStorage });
 
 // 📝 Render coding creation page
 router.get("/add", (req, res) => {
@@ -23,54 +19,67 @@ router.get("/add", (req, res) => {
 });
 
 // 📤 Handle coding submission
-router.post("/add", upload.fields([
-  { name: "coverImage", maxCount: 1 },
-  { name: "codeFile", maxCount: 1 }
-]), async (req, res) => {
-  try {
-    const { title, body } = req.body;
+router.post(
+  "/add",
+  imageUpload.single("coverImage"), // ✅ Cloudinary image upload
+  codeUpload.single("codeFile"),    // ✅ Local memory upload for code file
+  async (req, res) => {
+    try {
+      const { title, body } = req.body;
+      const coverImage = req.file; // This will be the image file from Cloudinary
 
-    const coverImage = req.files?.["coverImage"]?.[0];
-    const codeFile = req.files?.["codeFile"]?.[0];
+      const codeFile = req.files?.codeFile || req.file;
 
-    if (!codeFile) {
-      return res.status(400).send("Code file is required.");
-    }
+      if (!codeFile || !codeFile.buffer) {
+        return res.status(400).send("Code file is required.");
+      }
 
-    // 📄 PDF creation
-    const codeFilePath = path.resolve("./Public/Uploads", codeFile.filename);
-    const pdfFilename = `${Date.now()}-converted.pdf`;
-    const pdfPath = path.resolve("./Public/Uploads", pdfFilename);
+      const codeText = codeFile.buffer.toString("utf8");
 
-    const doc = new PDFDocument();
-    const pdfStream = fs.createWriteStream(pdfPath);
-    doc.pipe(pdfStream);
+      // 📄 Generate PDF in memory
+      const doc = new PDFDocument();
+      const buffers = [];
 
-    doc.fontSize(18).text(title, { align: "center" }).moveDown();
-    doc.fontSize(12).text(body, { align: "left" }).moveDown();
-    const codeContent = fs.readFileSync(codeFilePath, "utf8");
-    doc.fontSize(10).text(codeContent, { lineGap: 4 });
-    doc.end();
+      doc.on("data", buffers.push.bind(buffers));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(buffers);
 
-    pdfStream.on("finish", async () => {
-      await Coding.create({
-        title,
-        body,
-        createdBy: req.user._id,
-        coverImageURL: coverImage
-          ? `/Uploads/${coverImage.filename}`
-          : `/Uploads/default.jpg`,
-        codeFile: `/Uploads/${codeFile.filename}`,
-        codePDF: `/Uploads/${pdfFilename}`,
+        // 📤 Upload PDF to Cloudinary
+        const cloudinaryStream = cloudinary.uploader.upload_stream(
+          { resource_type: "raw", folder: "hobbyhub_code_pdfs" },
+          async (error, result) => {
+            if (error) {
+              console.error("Cloudinary PDF upload error:", error);
+              return res.status(500).send("PDF upload failed.");
+            }
+
+            // ✅ Save entry to MongoDB
+            await Coding.create({
+              title,
+              body,
+              createdBy: req.user._id,
+              coverImageURL: coverImage?.path || "https://images.ctfassets.net/zykafdb0ssf5/68qzkHjCboFfCsSxV2v9S6/4da75033db02c1339de2a3effb461f7a/missing.png",
+              codeFile: codeText,
+              codePDF: result.secure_url,
+            });
+
+            res.redirect("/");
+          }
+        );
+
+        streamifier.createReadStream(pdfBuffer).pipe(cloudinaryStream);
       });
 
-      res.redirect("/");
-    });
-  } catch (err) {
-    console.error("Upload/PDF error:", err);
-    res.status(500).send("Something went wrong while processing your submission.");
+      doc.fontSize(18).text(title, { align: "center" }).moveDown();
+      doc.fontSize(12).text(body, { align: "left" }).moveDown();
+      doc.fontSize(10).text(codeText, { lineGap: 4 });
+      doc.end();
+    } catch (err) {
+      console.error("Upload/PDF error:", err);
+      res.status(500).send("Something went wrong while processing your submission.");
+    }
   }
-});
+);
 
 // 📂 View coding entry
 router.get("/:id", async (req, res) => {

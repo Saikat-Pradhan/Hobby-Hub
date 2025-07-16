@@ -1,27 +1,25 @@
 const { Router } = require("express");
 const multer = require("multer");
-const path = require("path");
+const streamifier = require("streamifier");
+
 const Song = require("../Models/song");
 const SongComment = require("../Models/songComment");
+const { cloudinary } = require("../Utils/cloudinary");
 
 const router = Router();
 
-// Storage config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.resolve("./Public/Uploads")),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-});
+// 🔧 Memory storage for uploads
+const memoryStorage = multer.memoryStorage();
+const upload = multer({ storage: memoryStorage });
 
-const upload = multer({ storage });
-
-// Render add-song page
+// 🎵 Render add-song page
 router.get("/add", (req, res) => {
   res.render("addSong", {
     user: req.user,
   });
 });
 
-// Handle song creation
+// 📤 Handle song creation
 router.post(
   "/add",
   upload.fields([
@@ -31,18 +29,50 @@ router.post(
   async (req, res) => {
     try {
       const { title, body } = req.body;
-
       const coverImage = req.files?.["coverImage"]?.[0];
       const videoFile = req.files?.["videoFile"]?.[0];
 
-      const song = await Song.create({
+      // 🖼️ Default image fallback
+      let coverImageURL = "https://images.ctfassets.net/zykafdb0ssf5/68qzkHjCboFfCsSxV2v9S6/4da75033db02c1339de2a3effb461f7a/missing.png";
+      let videoFileURL = null;
+
+      // 📤 Upload cover image to Cloudinary
+      if (coverImage) {
+        const imageUpload = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "hobbyhub_song_images" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          streamifier.createReadStream(coverImage.buffer).pipe(stream);
+        });
+        coverImageURL = imageUpload.secure_url;
+      }
+
+      // 📤 Upload video to Cloudinary
+      if (videoFile) {
+        const videoUpload = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "hobbyhub_song_videos", resource_type: "video" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          streamifier.createReadStream(videoFile.buffer).pipe(stream);
+        });
+        videoFileURL = videoUpload.secure_url;
+      }
+
+      // 🧾 Save to MongoDB
+      await Song.create({
         title,
         body,
         createdBy: req.user._id,
-        coverImageURL: coverImage
-          ? `/Uploads/${coverImage.filename}`
-          : `/Uploads/default.jpg`,
-        videoFile: videoFile ? `/Uploads/${videoFile.filename}` : null,
+        coverImageURL,
+        videoFile: videoFileURL,
       });
 
       res.redirect("/");
@@ -53,7 +83,7 @@ router.post(
   }
 );
 
-// View song by ID
+// 🎧 View song by ID
 router.get("/:id", async (req, res) => {
   try {
     const song = await Song.findById(req.params.id).populate("createdBy");
@@ -70,19 +100,19 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Delete song entry
+// 🗑️ Delete song entry
 router.get("/delete/:id", async (req, res) => {
   try {
     await Song.findByIdAndDelete(req.params.id);
     await SongComment.deleteMany({ songId: req.params.id });
     res.redirect("/user/profile");
   } catch (err) {
-    console.error("Delete error:", err); 
+    console.error("Delete error:", err);
     res.status(404).send("Entry not found.");
   }
 });
 
-// Add comment
+// 💬 Add comment
 router.post("/comment/:songId", async (req, res) => {
   try {
     await SongComment.create({

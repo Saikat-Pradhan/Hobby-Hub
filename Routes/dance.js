@@ -1,22 +1,16 @@
 const { Router } = require("express");
 const multer = require("multer");
-const path = require("path");
+const streamifier = require("streamifier");
+
 const Dance = require("../Models/dance");
 const DanceComment = require("../Models/danceComment");
+const { cloudinary } = require("../Utils/cloudinary");
 
 const router = Router();
 
-// 📁 Multer storage config
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.resolve("./Public/Uploads"));
-  },
-  filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-
-const upload = multer({ storage });
+// 🔧 Memory storage for uploads
+const memoryStorage = multer.memoryStorage();
+const upload = multer({ storage: memoryStorage });
 
 // 🎭 Render dance creation form
 router.get("/add", (req, res) => {
@@ -35,20 +29,50 @@ router.post(
   async (req, res) => {
     try {
       const { title, body } = req.body;
-
       const coverImage = req.files?.["coverImage"]?.[0];
       const videoFile = req.files?.["videoFile"]?.[0];
 
-      const dance = await Dance.create({
+      // 🖼️ Default image fallback
+      let coverImageURL = "https://images.ctfassets.net/zykafdb0ssf5/68qzkHjCboFfCsSxV2v9S6/4da75033db02c1339de2a3effb461f7a/missing.png";
+      let videoFileURL = null;
+
+      // 📤 Upload cover image to Cloudinary
+      if (coverImage) {
+        const imageUpload = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "hobbyhub_dance_images" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          streamifier.createReadStream(coverImage.buffer).pipe(stream);
+        });
+        coverImageURL = imageUpload.secure_url;
+      }
+
+      // 📤 Upload video to Cloudinary
+      if (videoFile) {
+        const videoUpload = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "hobbyhub_dance_videos", resource_type: "video" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          streamifier.createReadStream(videoFile.buffer).pipe(stream);
+        });
+        videoFileURL = videoUpload.secure_url;
+      }
+
+      // 🧾 Save to MongoDB
+      await Dance.create({
         title,
         body,
         createdBy: req.user._id,
-        coverImageURL: coverImage
-          ? `/Uploads/${coverImage.filename}`
-          : `/Uploads/default.jpg`,
-        videoFile: videoFile
-          ? `/Uploads/${videoFile.filename}`
-          : null,
+        coverImageURL,
+        videoFile: videoFileURL,
       });
 
       res.redirect("/");
