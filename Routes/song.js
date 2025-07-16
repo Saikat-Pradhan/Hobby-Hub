@@ -42,7 +42,7 @@ router.post(
         coverImageURL: coverImage
           ? `/Uploads/${coverImage.filename}`
           : `/Uploads/default.jpg`,
-        videoFile: videoFile ? `/uploads/${videoFile.filename}` : null,
+        videoFile: videoFile ? `/Uploads/${videoFile.filename}` : null,
       });
 
       res.redirect("/");
@@ -74,6 +74,7 @@ router.get("/:id", async (req, res) => {
 router.get("/delete/:id", async (req, res) => {
   try {
     await Song.findByIdAndDelete(req.params.id);
+    await SongComment.deleteMany({ songId: req.params.id });
     res.redirect("/user/profile");
   } catch (err) {
     console.error("Delete error:", err); 

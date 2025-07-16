@@ -89,6 +89,7 @@ router.get("/:id", async (req, res) => {
 router.get("/delete/:id", async (req, res) => {
   try {
     await Coding.findByIdAndDelete(req.params.id);
+    await CodingComment.deleteMany({ codingId: req.params.id });
     res.redirect("/user/profile");
   } catch (err) {
     console.error("Delete error:", err);

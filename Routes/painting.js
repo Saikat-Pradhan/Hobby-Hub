@@ -26,7 +26,7 @@ router.post("/add", upload.single("coverImage"), async (req, res) => {
     title,
     body,
     createdBy: req.user._id,
-    coverImageURL: `/uploads/${req.file.filename}`,
+    coverImageURL: `/Uploads/${req.file.filename}`,
   });
 
   res.redirect("/");
@@ -46,8 +46,8 @@ router.get("/:id", async (req, res) => {
 // Delete coding entry
 router.get("/delete/:id", async (req, res) => {
   try {
-    await Painting.findByIdAndDelete(req.params.id).populate("createdBy");
-
+    await Painting.findByIdAndDelete(req.params.id);
+    await PaintingComment.deleteMany({ paintingId: req.params.id });
     res.redirect("/user/profile");
   } catch (err) {
     console.error("Fetch error:", err);

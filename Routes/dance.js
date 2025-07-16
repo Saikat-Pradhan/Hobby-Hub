@@ -47,7 +47,7 @@ router.post(
           ? `/Uploads/${coverImage.filename}`
           : `/Uploads/default.jpg`,
         videoFile: videoFile
-          ? `/uploads/${videoFile.filename}`
+          ? `/Uploads/${videoFile.filename}`
           : null,
       });
 
@@ -80,6 +80,7 @@ router.get("/:id", async (req, res) => {
 router.get("/delete/:id", async (req, res) => {
   try {
     await Dance.findByIdAndDelete(req.params.id);
+    await DanceComment.deleteMany({ danceId: req.params.id });
     res.redirect("/user/profile");
   } catch (err) {
     console.error("Delete error:", err);
