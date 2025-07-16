@@ -16,5 +16,5 @@ Features:-
 - 🧑‍🤝‍🧑 Create and manage hobby-based communities
 - 🖼️ Upload profile and banner images
 
-Deployement Link: "https://hobby-hub-btg5.onrender.com/"
+Deployement Link: "https://hobby-hub-saikat.onrender.com"
 -----------------
