@@ -8,6 +8,16 @@ const uploadFields = require("../Middlewares/fileUpload");
 
 const router = Router();
 
+// 🔧 Helper: Upload buffer to Cloudinary
+const uploadBufferToCloudinary = (buffer, options) =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(options, (err, result) => {
+      if (err) return reject(err);
+      resolve(result.secure_url);
+    });
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+
 // 📝 Render coding creation page
 router.get("/add", (req, res) => {
   res.render("addCoding", { user: req.user });
@@ -32,30 +42,29 @@ router.post("/add", uploadFields, async (req, res) => {
     const pdfBuffer = codeFile.buffer;
 
     // ✅ Upload PDF to Cloudinary
-    const cloudinaryUpload = () =>
-      new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          { resource_type: "raw", folder: "hobbyhub_code_pdfs" },
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result);
-          }
-        );
-        streamifier.createReadStream(pdfBuffer).pipe(uploadStream);
-      });
+    const codePDF = await uploadBufferToCloudinary(pdfBuffer, {
+      resource_type: "raw",
+      folder: "hobbyhub_code_pdfs",
+    });
 
-    const cloudinaryResult = await cloudinaryUpload();
+    // ✅ Upload cover image to Cloudinary (if provided)
+    let coverImageURL =
+      "https://images.ctfassets.net/zykafdb0ssf5/68qzkHjCboFfCsSxV2v9S6/4da75033db02c1339de2a3effb461f7a/missing.png";
+
+    if (coverImage) {
+      coverImageURL = await uploadBufferToCloudinary(coverImage.buffer, {
+        folder: "hobbyhub_cover_images",
+      });
+    }
 
     // ✅ Save to MongoDB
     await Coding.create({
       title,
       body,
       createdBy: req.user._id,
-      coverImageURL:
-        coverImage?.path ||
-        "https://images.ctfassets.net/zykafdb0ssf5/68qzkHjCboFfCsSxV2v9S6/4da75033db02c1339de2a3effb461f7a/missing.png",
-      codeFile: pdfBuffer, // ✅ Store raw buffer
-      codePDF: cloudinaryResult.secure_url,
+      coverImageURL,
+      codeFile: pdfBuffer,
+      codePDF,
     });
 
     res.redirect("/");
@@ -88,7 +97,7 @@ router.get("/download/:id", async (req, res) => {
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/pdf");
-    res.send(coding.codeFile); // ✅ Send raw buffer
+    res.send(coding.codeFile);
   } catch (err) {
     console.error("Download error:", err);
     res.status(500).send("Could not download PDF file.");
