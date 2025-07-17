@@ -11,7 +11,7 @@ const codingSchema = new Schema(
       required: true,
     },
     codeFile: {
-      type: String,
+      type: Buffer,
       required: true,
     },
     coverImageURL: {
