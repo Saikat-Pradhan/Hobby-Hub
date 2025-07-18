@@ -18,3 +18,4 @@ Features:-
 
 Deployement Link: "https://hobby-hub-saikat-pradhan-jq0t.onrender.com"
 -----------------
+Whether you're on mobile or desktop, this link is fully optimized to deliver a seamless experience across all devices.
