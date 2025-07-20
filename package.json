@@ -20,6 +20,7 @@
     "mongoose": "^8.16.2",
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
+    "nodemailer": "^7.0.5",
     "pdfkit": "^0.17.1",
     "streamifier": "^0.1.1"
   },

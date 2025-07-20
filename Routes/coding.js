@@ -1,10 +1,11 @@
 const { Router } = require("express");
 const streamifier = require("streamifier");
-
+const User = require("../Models/user");
 const Coding = require("../Models/coding");
 const CodingComment = require("../Models/codingComment");
 const { cloudinary } = require("../Utils/support");
 const uploadFields = require("../Middlewares/fileUpload");
+const transporter = require("../Config/mailer");
 
 const router = Router();
 
@@ -116,22 +117,67 @@ router.get("/delete/:id", async (req, res) => {
   }
 });
 
-// 💬 Submit comment
+// 💬 Submit a comment and notify post owner
 router.post("/codingComment/:codingId", async (req, res) => {
   try {
-    if (!req.body.content) {
-      return res.status(400).send("Comment content is required.");
+    const commentText = req.body?.content?.trim();
+    if (!commentText) {
+      return res.status(400).send("Comment cannot be empty.");
     }
 
+    // Create the comment
     await CodingComment.create({
-      content: req.body.content,
+      content: commentText,
       codingId: req.params.codingId,
       createdBy: req.user._id,
     });
 
+    // Fetch full commenter details
+    const commenter = await User.findById(req.user._id).select("fullName");
+    if (!commenter || !commenter.fullName) {
+      throw new Error("Commenter info missing.");
+    }
+
+    // Find the post and owner info
+    const codingPost = await Coding.findById(req.params.codingId).populate({
+      path: "createdBy",
+      select: "fullName email",
+    });
+    if (!codingPost || !codingPost.createdBy || !codingPost.createdBy.email) {
+      throw new Error("Post or owner info missing.");
+    }
+
+    // Extract first name from owner's full name
+    const recipientFirstName = codingPost.createdBy.fullName.split(" ")[0] || "there";
+    const commenterName = commenter.fullName;
+
+    // Build the email
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: codingPost.createdBy.email,
+      subject: "💬 New Comment on Your Code!",
+      text: `
+Hey ${recipientFirstName},
+
+${commenterName} just commented on your code:
+
+"${commentText}"
+
+Check it out here:
+${req.protocol}://${req.get("host")}/code/${req.params.codingId}
+
+Cheers,  
+Your App Team
+      `,
+    };
+
+    // Send the email
+    await transporter.sendMail(mailOptions);
+
+    // Redirect back to the post
     res.redirect(`/code/${req.params.codingId}`);
   } catch (err) {
-    console.error("Comment error:", err);
+    console.error("Comment error:", err.message);
     res.status(500).send("Could not post your comment.");
   }
 });
