@@ -6,6 +6,8 @@ const Song = require("../Models/song");
 const SongComment = require("../Models/songComment");
 const transporter = require("../Config/mailer");
 const { cloudinary } = require("../Utils/cloudinary");
+const Reaction = require("../Models/songReaction");
+const mongoose = require("mongoose");
 
 const router = Router();
 
@@ -84,20 +86,87 @@ router.post(
   }
 );
 
-// 🎧 View song by ID
+// View song by ID
 router.get("/:id", async (req, res) => {
   try {
-    const song = await Song.findById(req.params.id).populate("createdBy");
-    const songComments = await SongComment.find({ songId: req.params.id }).populate("createdBy");
+    const songId = req.params.id;
 
+    // 🔒 Validate ObjectId before using in aggregation
+    if (!mongoose.Types.ObjectId.isValid(songId)) {
+      throw new Error("Invalid song ID");
+    }
+
+    // 🎵 Fetch song and creator
+    const song = await Song.findById(songId).populate("createdBy");
+    if (!song) throw new Error("Song not found");
+
+    // 💬 Fetch comments
+    const songComments = await SongComment.find({ songId }).populate("createdBy");
+
+    // 📊 Aggregate reaction counts
+    const reactions = await Reaction.aggregate([
+      {
+        $match: {
+          postType: "song",
+          postId: new mongoose.Types.ObjectId(songId)
+        }
+      },
+      {
+        $group: {
+          _id: "$type",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const reactionCounts = {};
+    reactions.forEach(r => {
+      reactionCounts[r._id] = r.count;
+    });
+
+    // 🖼️ Render view with all data
     res.render("song", {
       user: req.user,
       song,
       songComments,
+      reactionCounts
     });
+
   } catch (err) {
-    console.error("Fetch error:", err);
-    res.status(404).send("Song not found.");
+    console.error("Full error:", err);
+    res.status(404).send(err.message || "Song not found.");
+  }
+});
+
+// Add Reactions
+router.post("/reactions", async (req, res) => {
+  const { reactionType, postId, postType } = req.body;
+  const userId = req.user._id;
+  const reaction = reactionType[0];
+
+  const validTypes = ["like", "love", "care", "angry", "sad"];
+  if (!validTypes.includes(reaction) || postType !== "song") {
+    return res.status(400).send("Invalid reaction or post type");
+  }
+
+  try {
+    const existing = await Reaction.findOne({ userId, postId, postType });
+
+    if (existing) {
+      if (existing.type === reaction) {
+        await existing.deleteOne(); // Remove reaction
+      } else {
+        existing.type = reaction; // Update type
+        await existing.save();
+      }
+    } else {
+      await Reaction.create({ type: reaction, postType, postId, userId });
+    }
+
+    res.redirect(`/song/${postId}`);
+  } catch (err) {
+    console.error("Reaction error:", err);
+    res.status(500).send("Server error");
   }
 });
 

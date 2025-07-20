@@ -6,6 +6,8 @@ const CodingComment = require("../Models/codingComment");
 const { cloudinary } = require("../Utils/support");
 const uploadFields = require("../Middlewares/fileUpload");
 const transporter = require("../Config/mailer");
+const Reaction = require("../Models/codingReaction");
+const mongoose = require("mongoose");
 
 const router = Router();
 
@@ -78,13 +80,86 @@ router.post("/add", uploadFields, async (req, res) => {
 // 📂 View coding entry
 router.get("/:id", async (req, res) => {
   try {
-    const coding = await Coding.findById(req.params.id).populate("createdBy");
-    const codingComments = await CodingComment.find({ codingId: req.params.id }).populate("createdBy");
+    const codingId = req.params.id;
 
-    res.render("coding", { user: req.user, coding, codingComments });
+    // 🔒 Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(codingId)) {
+      throw new Error("Invalid coding ID");
+    }
+
+    // 📂 Fetch coding entry and author
+    const coding = await Coding.findById(codingId).populate("createdBy");
+    if (!coding) throw new Error("Coding entry not found");
+
+    // 💬 Fetch comments
+    const codingComments = await CodingComment.find({ codingId }).populate("createdBy");
+
+    // 📊 Aggregate reaction counts
+    const reactions = await Reaction.aggregate([
+      {
+        $match: {
+          postType: "code",
+          postId: new mongoose.Types.ObjectId(codingId)
+        }
+      },
+      {
+        $group: {
+          _id: "$type",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const reactionCounts = {};
+    reactions.forEach(r => {
+      reactionCounts[r._id] = r.count;
+    });
+
+    // 🖼️ Render coding.ejs view
+    res.render("coding", {
+      user: req.user,
+      coding,
+      codingComments,
+      reactionCounts
+    });
+
   } catch (err) {
     console.error("Fetch error:", err);
-    res.status(404).send("Entry not found.");
+    res.status(404).send(err.message || "Entry not found.");
+  }
+});
+
+// 😍 Add reactions to coding entries
+router.post("/reactions", async (req, res) => {
+  const { reactionType, postId, postType } = req.body;
+  const userId = req.user._id;
+  const reaction = Array.isArray(reactionType) ? reactionType[0] : reactionType;
+
+  const validTypes = ["like", "love", "care", "angry", "sad"];
+  const validPostTypes = ["code"];
+
+  if (!validTypes.includes(reaction) || !validPostTypes.includes(postType)) {
+    return res.status(400).send("Invalid reaction or post type");
+  }
+
+  try {
+    const existing = await Reaction.findOne({ userId, postId, postType });
+
+    if (existing) {
+      if (existing.type === reaction) {
+        await existing.deleteOne(); // Toggle off
+      } else {
+        existing.type = reaction;   // Switch type
+        await existing.save();
+      }
+    } else {
+      await Reaction.create({ type: reaction, postType, postId, userId });
+    }
+
+    res.redirect(`/code/${postId}`);
+  } catch (err) {
+    console.error("Reaction error:", err);
+    res.status(500).send("Server error");
   }
 });
 

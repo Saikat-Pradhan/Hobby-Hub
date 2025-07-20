@@ -6,6 +6,8 @@ const Dance = require("../Models/dance");
 const DanceComment = require("../Models/danceComment");
 const { cloudinary } = require("../Utils/cloudinary");
 const transporter = require("../Config/mailer");
+const Reaction = require("../Models/danceReaction");
+const mongoose = require("mongoose");
 
 const router = Router();
 
@@ -87,17 +89,86 @@ router.post(
 // 🕺 View a dance post
 router.get("/:id", async (req, res) => {
   try {
-    const dance = await Dance.findById(req.params.id).populate("createdBy");
-    const danceComments = await DanceComment.find({ danceId: req.params.id }).populate("createdBy");
+    const danceId = req.params.id;
 
+    // 🔒 Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(danceId)) {
+      throw new Error("Invalid dance ID");
+    }
+
+    // Fetch dance post and creator
+    const dance = await Dance.findById(danceId).populate("createdBy");
+    if (!dance) throw new Error("Dance post not found");
+
+    // Fetch comments
+    const danceComments = await DanceComment.find({ danceId }).populate("createdBy");
+
+    // Aggregate reaction counts
+    const reactions = await Reaction.aggregate([
+      {
+        $match: {
+          postType: "dance",
+          postId: new mongoose.Types.ObjectId(danceId)
+        }
+      },
+      {
+        $group: {
+          _id: "$type",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const reactionCounts = {};
+    reactions.forEach(r => {
+      reactionCounts[r._id] = r.count;
+    });
+
+    // Render view
     res.render("dance", {
       user: req.user,
       dance,
       danceComments,
+      reactionCounts
     });
+
   } catch (err) {
     console.error("Fetch error:", err);
-    res.status(404).send("Dance post not found.");
+    res.status(404).send(err.message || "Dance post not found.");
+  }
+});
+
+// 💃 Handle reactions to dance posts
+router.post("/reactions", async (req, res) => {
+  const { reactionType, postId, postType } = req.body;
+  const userId = req.user._id;
+  const reaction = Array.isArray(reactionType) ? reactionType[0] : reactionType;
+
+  const validTypes = ["like", "love", "care", "angry", "sad"];
+  const validPostTypes = ["dance"];
+
+  if (!validTypes.includes(reaction) || !validPostTypes.includes(postType)) {
+    return res.status(400).send("Invalid reaction or post type");
+  }
+
+  try {
+    const existing = await Reaction.findOne({ userId, postId, postType });
+
+    if (existing) {
+      if (existing.type === reaction) {
+        await existing.deleteOne(); // Toggle off
+      } else {
+        existing.type = reaction;   // Switch type
+        await existing.save();
+      }
+    } else {
+      await Reaction.create({ type: reaction, postType, postId, userId });
+    }
+
+    res.redirect(`/dance/${postId}`);
+  } catch (err) {
+    console.error("Reaction error:", err);
+    res.status(500).send("Server error");
   }
 });
 

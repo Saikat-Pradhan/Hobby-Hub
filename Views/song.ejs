@@ -2,15 +2,33 @@
 <html lang="en">
 <head>
   <%- include("./Partials/head") %>
-  <title>Song</title>
+  <title><%= song.title %></title>
+  <style>
+    #reaction-menu {
+      position: absolute;
+      display: none;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 5px 10px;
+      z-index: 1000;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reaction-option {
+      cursor: pointer;
+      font-size: 1.4rem;
+    }
+  </style>
 </head>
 <body>
   <%- include("./Partials/nav") %>
 
   <div class="container">
-    <div class="container mt-4">
-      <h1><%= song.title %></h1>
 
+    <!-- 🎵 Song Info -->
+    <div class="mt-4">
+      <h1><%= song.title %></h1>
       <video width="300" height="500px" controls class="mb-3">
         <source src="<%= song.videoFile %>" type="video/mp4">
         Your browser does not support the video tag.
@@ -18,24 +36,57 @@
       <pre class="mt-3"><%= song.body %></pre>
     </div>
 
-    <div class="container mt-4">
+    <!-- 👤 Creator Info -->
+    <div class="mt-4 d-flex align-items-center gap-2">
       <img src="<%= song.createdBy.profileImageURL %>" width="25px" style="border-radius: 20px;">
       <%= song.createdBy.fullName %>
     </div>
 
-    <div class="container mt-4">
-      <form action="/song/comment/<%= song._id %>" method="post">
+    <!-- 😍 Reactions -->
+    <div class="mt-4">
+      <h2>Your Reaction</h2>
+      <form action="/song/reactions" method="POST" class="d-flex gap-3 flex-wrap" id="reaction-form">
+        <% const emojiList = [
+          { emoji: "👍", type: "like" },
+          { emoji: "❤️", type: "love" },
+          { emoji: "🤗", type: "care" },
+          { emoji: "😠", type: "angry" },
+          { emoji: "😢", type: "sad" }
+        ]; %>
+
+        <% emojiList.forEach(({ emoji, type }) => { %>
+          <button type="submit"
+                  name="reactionType"
+                  value="<%= type %>"
+                  class="btn btn-light shadow-sm reaction-button">
+            <span style="font-size: 1.3rem;"><%= emoji %></span>
+            <span class="ms-1">
+              <%= reactionCounts && reactionCounts[type] ? reactionCounts[type] : 0 %>
+            </span>
+          </button>
+        <% }) %>
+
+        <input type="hidden" name="postType" value="song">
+        <input type="hidden" name="postId" value="<%= song._id %>">
+        <input type="hidden" name="reactionType" value="">
+      </form>
+    </div>
+
+    <!-- 💬 Comments -->
+    <div class="mt-4">
+      <form action="/song/comment/<%= song._id %>" method="POST">
         <h2>Comments (<%= songComments.length %>)</h2>
         <div class="form-floating">
-          <textarea class="form-control" placeholder="Leave a comment here" id="floatingTextarea2"
-            name="content" style="height: 100px"></textarea>
+          <textarea class="form-control" name="content" placeholder="Leave a comment here"
+                    id="floatingTextarea2" style="height: 100px"></textarea>
           <label for="floatingTextarea2">Comments</label>
         </div>
         <button type="submit" class="btn btn-primary mt-2">Post Comment</button>
       </form>
     </div>
 
-    <div class="container mt-3">
+    <!-- 💭 Comment List -->
+    <div class="mt-3">
       <% songComments.forEach(comment => { %>
         <div class="mb-2">
           <img src="<%= comment.createdBy.profileImageURL %>" width="25px" style="border-radius: 20px;">
@@ -44,8 +95,45 @@
         </div>
       <% }) %>
     </div>
+
+    <!-- 🎯 Reaction Popup -->
+    <div id="reaction-menu">
+      <% ["like", "love", "care", "angry", "sad"].forEach(type => {
+           const emoji = { like: "👍", love: "❤️", care: "🤗", angry: "😠", sad: "😢" }[type]; %>
+        <span class="reaction-option" data-reaction="<%= type %>"><%= emoji %></span>
+      <% }) %>
+    </div>
+
   </div>
 
   <%- include("./Partials/scripts") %>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const reactionButtons = document.querySelectorAll(".reaction-button");
+      const reactionMenu = document.getElementById("reaction-menu");
+      const reactionForm = document.getElementById("reaction-form");
+      const reactionTypeInput = reactionForm.querySelector("input[name='reactionType']");
+
+      reactionButtons.forEach(button => {
+        button.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          reactionMenu.style.left = e.pageX + "px";
+          reactionMenu.style.top = e.pageY + "px";
+          reactionMenu.style.display = "flex";
+        });
+      });
+
+      document.querySelectorAll(".reaction-option").forEach(option => {
+        option.addEventListener("click", () => {
+          reactionTypeInput.value = option.dataset.reaction;
+          reactionForm.submit();
+        });
+      });
+
+      document.addEventListener("click", () => {
+        reactionMenu.style.display = "none";
+      });
+    });
+  </script>
 </body>
 </html>

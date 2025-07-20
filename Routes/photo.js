@@ -6,6 +6,8 @@ const Photo = require("../Models/photo");
 const PhotoComment = require("../Models/photoComment");
 const { cloudinary } = require("../Utils/cloudinary");
 const transporter = require("../Config/mailer");
+const Reaction = require("../Models/photoReaction");
+const mongoose = require("mongoose");
 
 const router = Router();
 
@@ -58,20 +60,89 @@ router.post("/add", upload.single("coverImage"), async (req, res) => {
   }
 });
 
-// 🖼️ View a photo post
+// 📷 View a photo post with reactions
 router.get("/:id", async (req, res) => {
   try {
-    const photo = await Photo.findById(req.params.id).populate("createdBy");
-    const photoComments = await PhotoComment.find({ photoId: req.params.id }).populate("createdBy");
+    const photoId = req.params.id;
 
+    // 🔒 Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(photoId)) {
+      throw new Error("Invalid photo ID");
+    }
+
+    // Fetch photo and creator
+    const photo = await Photo.findById(photoId).populate("createdBy");
+    if (!photo) throw new Error("Photo not found");
+
+    // Fetch comments
+    const photoComments = await PhotoComment.find({ photoId }).populate("createdBy");
+
+    // Aggregate reactions
+    const reactions = await Reaction.aggregate([
+      {
+        $match: {
+          postType: "photo",
+          postId: new mongoose.Types.ObjectId(photoId)
+        }
+      },
+      {
+        $group: {
+          _id: "$type",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const reactionCounts = {};
+    reactions.forEach(r => {
+      reactionCounts[r._id] = r.count;
+    });
+
+    // Render EJS view
     res.render("photo", {
       user: req.user,
       photo,
       photoComments,
+      reactionCounts
     });
+
   } catch (err) {
     console.error("Fetch error:", err);
-    res.status(404).send("Photo post not found.");
+    res.status(404).send(err.message || "Photo not found.");
+  }
+});
+
+// ❤️ Add reactions to photo post
+router.post("/reactions", async (req, res) => {
+  const { reactionType, postId, postType } = req.body;
+  const userId = req.user._id;
+  const reaction = Array.isArray(reactionType) ? reactionType[0] : reactionType;
+
+  const validTypes = ["like", "love", "care", "angry", "sad"];
+  const validPostTypes = ["photo"];
+
+  if (!validTypes.includes(reaction) || !validPostTypes.includes(postType)) {
+    return res.status(400).send("Invalid reaction or post type");
+  }
+
+  try {
+    const existing = await Reaction.findOne({ userId, postId, postType });
+
+    if (existing) {
+      if (existing.type === reaction) {
+        await existing.deleteOne(); // Toggle off
+      } else {
+        existing.type = reaction;   // Switch type
+        await existing.save();
+      }
+    } else {
+      await Reaction.create({ type: reaction, postType, postId, userId });
+    }
+
+    res.redirect(`/photo/${postId}`);
+  } catch (err) {
+    console.error("Reaction error:", err);
+    res.status(500).send("Server error");
   }
 });
 
