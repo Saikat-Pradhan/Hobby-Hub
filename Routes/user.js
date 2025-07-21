@@ -7,6 +7,7 @@ const User = require("../Models/user");
 const Song = require("../Models/song");
 const Dance = require("../Models/dance");
 const Painting = require("../Models/painting");
+const Gaming = require("../Models/gaming");
 const Coding = require("../Models/coding");
 const Photo = require("../Models/photo");
 const { cloudinary } = require("../Utils/cloudinary");
@@ -17,12 +18,12 @@ const router = Router();
 const memoryStorage = multer.memoryStorage();
 const upload = multer({ storage: memoryStorage });
 
-// 📝 Render blog creation form
-router.get("/add", (req, res) => {
-    return res.render("addBlog", {
-        user: req.user,
-    });
-});
+// // 📝 Render blog creation form
+// router.get("/add", (req, res) => {
+//     return res.render("addBlog", {
+//         user: req.user,
+//     });
+// });
 
 // 🔐 Render sign-in and sign-up pages
 router.get("/signin", (req, res) => res.render("signIn"));
@@ -33,6 +34,7 @@ router.get("/profile", async (req, res) => {
     const createdSongs = await Song.find({ createdBy: req.user._id });
     const createdDances = await Dance.find({ createdBy: req.user._id });
     const createdPaintings = await Painting.find({ createdBy: req.user._id });
+    const createdGames = await Gaming.find({ createdBy: req.user._id });
     const createdCodes = await Coding.find({ createdBy: req.user._id });
     const createdPhotos = await Photo.find({ createdBy: req.user._id });
 
@@ -40,6 +42,7 @@ router.get("/profile", async (req, res) => {
         songs: createdSongs,
         dances: createdDances,
         paintings: createdPaintings,
+        games: createdGames,
         codes: createdCodes,
         photos: createdPhotos,
         user: await User.findById(req.user._id),

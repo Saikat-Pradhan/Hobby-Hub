@@ -7,6 +7,7 @@ const userRoute = require("./Routes/user");
 const songRoute = require("./Routes/song");
 const danceRoute  = require("./Routes/dance");
 const paintingRoute  = require("./Routes/painting");
+const gamingRoute = require("./Routes/gaming");
 const codingRoute = require("./Routes/coding");
 const photoRoute = require("./Routes/photo");
 
@@ -18,6 +19,7 @@ const { checkForAuthenticationCookie, logedInChecker } = require("./Middlewares/
 const Song = require("./Models/song");
 const Dance = require("./Models/dance");
 const Painting = require("./Models/painting");
+const Gaming = require("./Models/gaming")
 const Coding = require("./Models/coding");
 const Photo = require("./Models/photo");
 const User = require("./Models/user");
@@ -46,6 +48,7 @@ app.get("/", async (req, res) => {
     const songs = await Song.find({});
     const dances = await Dance.find({});
     const paintings = await Painting.find({});
+    const games = await Gaming.find({});
     const codes = await Coding.find({});
     const photos = await Photo.find({});
     res.render("home", {
@@ -53,6 +56,7 @@ app.get("/", async (req, res) => {
         songs,
         dances,
         paintings,
+        games,
         codes,
         photos,
     });
@@ -63,6 +67,7 @@ app.use("/user", userRoute);
 app.use("/song", logedInChecker, songRoute);
 app.use("/dance", logedInChecker, danceRoute);
 app.use("/painting", logedInChecker, paintingRoute);
+app.use("/game", logedInChecker, gamingRoute);
 app.use("/code", logedInChecker, codingRoute);
 app.use("/photo", logedInChecker, photoRoute);
 

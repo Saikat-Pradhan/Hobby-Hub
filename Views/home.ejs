@@ -1,72 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <%- include("./Partials/head") %>
-    <title>HomePage</title>
-  </head>
+<head>
+  <%- include("./Partials/head") %>
+  <title>HomePage</title>
+</head>
+<body>
+  <%- include("./Partials/nav") %>
 
-  <body>
-    <%- include("./Partials/nav") %>
-    <div class="container">
-    <% if (!locals.user) { 
+  <div class="container">
+    <% 
       const sections = [
         { title: "Songs", items: songs, type: "song" },
         { title: "Dance", items: dances, type: "dance" },
         { title: "Paintings", items: paintings, type: "painting" },
+        { title: "Games", items: games, type: "game" },
         { title: "Codes", items: codes, type: "code" },
         { title: "Photos", items: photos, type: "photo" }
       ];
 
-      sections.forEach(section => {
-        if (section.items.length) { %>
-          <h1 class="mt-3" style="color: blue"><%= section.title %>:</h1>
-          <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
-            <% section.items.forEach(item => { %>
-              <div class="col">
-                <div class="card h-100" style="width: 18rem;">
-                  <img src="<%= item.coverImageURL %>" class="card-img-top" style="height: 5cm;" alt="<%= item.title %>" loading="lazy">
-                  <div class="card-body">
-                    <h5 class="card-title"><%= item.title %></h5>
-                    <a href="/<%= section.type %>/<%= item._id %>" class="btn btn-primary">View</a>
-                  </div>
-                </div>
-              </div>
-            <% }) %>
-          </div>
-        <% } 
-      }); 
-    } else if (Array.isArray(locals.user.interestedFields)) {
       const interestMap = {
-        SINGING: { items: songs, type: "song", title: "Songs" },
-        DANCING: { items: dances, type: "dance", title: "Dance" },
-        DRAWING: { items: paintings, type: "painting", title: "Paintings" },
-        CODING: { items: codes, type: "code", title: "Codes" },
-        PHOTOGRAPHY: { items: photos, type: "photo", title: "Photos" }
+        SINGING: "song",
+        DANCING: "dance",
+        DRAWING: "painting",
+        GAMING: "game",
+        CODING: "code",
+        PHOTOGRAPHY: "photo"
       };
 
-      for (let key in interestMap) {
-        if (locals.user.interestedFields.includes(key) || locals.user.interestedFields.includes("ALL")) {
-          const section = interestMap[key];
-          if (section.items.length) { %>
-            <h1 class="mt-3" style="color: blue"><%= section.title %>:</h1>
-            <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
-              <% section.items.forEach(item => { %>
-                <div class="col">
-                  <div class="card h-100" style="width: 18rem;">
-                    <img src="<%= item.coverImageURL %>" class="card-img-top" style="height: 5cm;" alt="<%= item.title %>" loading="lazy">
-                    <div class="card-body">
-                      <h5 class="card-title"><%= item.title %></h5>
-                      <a href="/<%= section.type %>/<%= item._id %>" class="btn btn-primary">View</a>
-                    </div>
-                  </div>
-                </div>
-              <% }) %>
+      const isGuest = !locals.user;
+      const showAll = isGuest || locals.user?.interestedFields?.includes("ALL");
+    %>
+
+    <% sections.forEach(section => {
+         const shouldDisplay = showAll || 
+           locals.user?.interestedFields?.includes(Object.keys(interestMap).find(k => interestMap[k] === section.type));
+
+         if (shouldDisplay && section.items?.length) { %>
+      <h1 class="mt-4" style="color: blue"><%= section.title %>:</h1>
+      <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
+        <% section.items.forEach(item => { %>
+          <div class="col">
+            <div class="card h-100 shadow-sm" style="width: 18rem;">
+              <img src="<%= item.coverImageURL %>" class="card-img-top" style="height: 5cm;" alt="<%= item.title %>" loading="lazy">
+              <div class="card-body">
+                <h5 class="card-title"><%= item.title %></h5>
+
+                <% if (section.type === "game" && item.body) { %>
+                  <p class="card-text" style="font-size: 0.9rem;"><%= item.body.slice(0, 100) %>...</p>
+                <% } %>
+
+                <a href="/<%= section.type %>/<%= item._id %>" class="btn btn-primary">View</a>
+              </div>
             </div>
-          <% } 
-        }
-      }
-    } %>
-    </div>
-    <%- include("./Partials/scripts") %>
-  </body>
+          </div>
+        <% }) %>
+      </div>
+    <% } }) %>
+  </div>
+
+  <%- include("./Partials/scripts") %>
+</body>
 </html>
