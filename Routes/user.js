@@ -57,6 +57,11 @@ router.post("/signup", upload.single("profileImage"), async (req, res) => {
         return res.render("signUp", { error: "All fields are required." });
     }
 
+    const existingEmail = await User.findOne({ email: body.email });
+    if (existingEmail) {
+        return res.render("signUp", { error: "Email ID already used in another account." });
+    }
+
     let profileImageURL = "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/default.png";
 
     // 📤 Upload profile image to Cloudinary or use default
