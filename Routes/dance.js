@@ -4,6 +4,7 @@ const streamifier = require("streamifier");
 const User = require("../Models/user");
 const Dance = require("../Models/dance");
 const DanceComment = require("../Models/danceComment");
+const DanceReactions = require("../Models/danceReaction");
 const { cloudinary } = require("../Utils/cloudinary");
 const transporter = require("../Config/mailer");
 const Reaction = require("../Models/danceReaction");
@@ -177,6 +178,8 @@ router.get("/delete/:id", async (req, res) => {
   try {
     await Dance.findByIdAndDelete(req.params.id);
     await DanceComment.deleteMany({ danceId: req.params.id });
+    await DanceReactions.deleteMany({ postId: req.params.id });
+
     res.redirect("/user/profile");
   } catch (err) {
     console.error("Delete error:", err);

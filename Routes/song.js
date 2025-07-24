@@ -4,6 +4,7 @@ const streamifier = require("streamifier");
 const User = require("../Models/user");
 const Song = require("../Models/song");
 const SongComment = require("../Models/songComment");
+const SongReactions = require("../Models/photoReaction");
 const transporter = require("../Config/mailer");
 const { cloudinary } = require("../Utils/cloudinary");
 const Reaction = require("../Models/songReaction");
@@ -175,6 +176,8 @@ router.get("/delete/:id", async (req, res) => {
   try {
     await Song.findByIdAndDelete(req.params.id);
     await SongComment.deleteMany({ songId: req.params.id });
+    await SongReactions.deleteMany({ postId: req.params.id });
+
     res.redirect("/user/profile");
   } catch (err) {
     console.error("Delete error:", err);

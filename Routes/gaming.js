@@ -4,6 +4,7 @@ const streamifier = require("streamifier");
 const User = require("../Models/user");
 const Game = require("../Models/gaming");
 const GameComment = require("../Models/gamingComment");
+const GameReactions = require("../Models/gamingReaction");
 const Reaction = require("../Models/gamingReaction");
 const { cloudinary } = require("../Utils/cloudinary");
 const transporter = require("../Config/mailer");
@@ -155,6 +156,8 @@ router.get("/delete/:id", async (req, res) => {
   try {
     await Game.findByIdAndDelete(req.params.id);
     await GameComment.deleteMany({ gameId: req.params.id });
+    await GameReactions.deleteMany({ postId: req.params.id });
+
     res.redirect("/user/profile");
   } catch (err) {
     console.error("Delete error:", err);
