@@ -62,6 +62,11 @@ app.get("/", async (req, res) => {
     });
 });
 
+// Just for awake backend
+app.get("/ping", (req, res) => {
+  res.status(200).send("pong");
+});
+
 // Routes
 app.use("/user", userRoute);
 app.use("/song", logedInChecker, songRoute);
