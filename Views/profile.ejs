@@ -1,66 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <%- include("./Partials/head") %>
-  <title>Profile</title>
+    <title>Profile</title>
 </head>
+
 <body>
-  <%- include("./Partials/nav") %>  
+  <%- include("./Partials/nav") %>
 
-  <div class="container mt-3">
-    <% if (
-      !songs.length &&
-      !dances.length &&
-      !paintings.length &&
-      !codes.length &&
-      !photos.length &&
-      !games.length
-    ) { %>
-      <h1 style="color: blue">You haven't yet posted anything!</h1>
-    <% } %>
+    <div class="page">
+      <div class="container mt-3">
+        <% if ( !songs.length && !dances.length && !paintings.length && !codes.length && !photos.length && !games.length
+          ) { %>
+          <h1 style="color: rgb(255, 255, 255)">You haven't yet posted anything!</h1>
+          <% } %>
 
-    <% if (Array.isArray(user.interestedFields)) { %>
-      <% const interestMap = {
-        SINGING: { items: songs, type: "song", title: "Songs" },
-        DANCING: { items: dances, type: "dance", title: "Dance" },
-        DRAWING: { items: paintings, type: "painting", title: "Paintings" },
-        GAMING: { items: games, type: "game", title: "Games" },
-        CODING: { items: codes, type: "code", title: "Codes" },
-        PHOTOGRAPHY: { items: photos, type: "photo", title: "Photos" }
-      }; %>
+            <% if (Array.isArray(user.interestedFields)) { %>
+              <% const interestMap={ SINGING: { items: songs, type: "song" , title: "Songs" }, DANCING: { items: dances,
+                type: "dance" , title: "Dance" }, DRAWING: { items: paintings, type: "painting" , title: "Paintings" },
+                GAMING: { items: games, type: "game" , title: "Games" }, CODING: { items: codes, type: "code" ,
+                title: "Codes" }, PHOTOGRAPHY: { items: photos, type: "photo" , title: "Photos" } }; %>
 
-      <% for (let key in interestMap) {
-        if (
-          user.interestedFields.includes(key) ||
-          user.interestedFields.includes("ALL")
-        ) {
-          const section = interestMap[key];
-          if (section.items.length) { %>
+                <% for (let key in interestMap) { if ( user.interestedFields.includes(key) ||
+                  user.interestedFields.includes("ALL") ) { const section=interestMap[key]; if (section.items.length) {
+                  %>
 
-            <h1 class="mt-3" style="color: blue"><%= section.title %>:</h1>
-            <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
-              <% section.items.forEach(item => { %>
-                <div class="col">
-                  <div class="card h-100" style="width: 18rem;">
-                    <img src="<%= item.coverImageURL %>" class="card-img-top" style="height: 5cm;" alt="<%= item.title %>" loading="lazy">
-                    <div class="card-body">
-                      <h5 class="card-title"><%= item.title %></h5>
-                      <a href="/<%= section.type %>/<%= item._id %>" class="btn btn-primary">View</a>
-                      <a href="/<%= section.type %>/delete/<%= item._id %>" class="btn btn-danger">Delete</a>
-                    </div>
+                  <h1 class="mt-3" style="color: rgb(250, 250, 255)">
+                    <%= section.title %>:
+                  </h1>
+                  <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
+                    <% section.items.forEach(item=> { %>
+                      <div class="col">
+                        <div class="card h-100 text-white bg-black" style="width: 18rem;">
+                          <img src="<%= item.coverImageURL %>" class="card-img-top" style="height: 5cm;"
+                            alt="<%= item.title %>" loading="lazy">
+                          <div class="card-body">
+                            <h5 class="card-title">
+                              <%= item.title %>
+                            </h5>
+                            <a href="/<%= section.type %>/<%= item._id %>" class="btn btn-primary">View</a>
+                            <a href="/<%= section.type %>/delete/<%= item._id %>" class="btn btn-danger">Delete</a>
+                          </div>
+                        </div>
+                      </div>
+                      <% }) %>
                   </div>
-                </div>
-              <% }) %>
-            </div>
 
-      <%     }
-           }
-         } %>
-    <% } else { %>
-      <h3 class="text-warning">Your interests are not set. Please update your profile preferences.</h3>
-    <% } %>
-  </div>
+                  <% } } } %>
+                    <% } else { %>
+                      <h3 class="text-warning">Your interests are not set. Please update your profile preferences.</h3>
+                      <% } %>
+      </div>
+    </div>
 
-  <%- include("./Partials/scripts") %>
+    <%- include("./Partials/scripts") %>
 </body>
+
 </html>
