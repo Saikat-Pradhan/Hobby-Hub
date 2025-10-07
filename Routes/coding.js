@@ -194,7 +194,7 @@ router.get("/delete/:id", async (req, res) => {
   }
 });
 
-// 💬 Submit a comment and notify post owner
+// 💬 Submit a comment
 router.post("/codingComment/:codingId", async (req, res) => {
   try {
     const commentText = req.body?.content?.trim();
@@ -208,48 +208,6 @@ router.post("/codingComment/:codingId", async (req, res) => {
       codingId: req.params.codingId,
       createdBy: req.user._id,
     });
-
-    // Fetch full commenter details
-    const commenter = await User.findById(req.user._id).select("fullName");
-    if (!commenter || !commenter.fullName) {
-      throw new Error("Commenter info missing.");
-    }
-
-    // Find the post and owner info
-    const codingPost = await Coding.findById(req.params.codingId).populate({
-      path: "createdBy",
-      select: "fullName email",
-    });
-    if (!codingPost || !codingPost.createdBy || !codingPost.createdBy.email) {
-      throw new Error("Post or owner info missing.");
-    }
-
-    // Extract first name from owner's full name
-    const recipientFirstName = codingPost.createdBy.fullName.split(" ")[0] || "there";
-    const commenterName = commenter.fullName;
-
-    // Build the email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: codingPost.createdBy.email,
-      subject: "💬 New Comment on Your Code!",
-      text: `
-Hey ${recipientFirstName},
-
-${commenterName} just commented on your code:
-
-"${commentText}"
-
-Check it out here:
-${req.protocol}://${req.get("host")}/code/${req.params.codingId}
-
-Cheers,  
-Your App Team
-      `,
-    };
-
-    // Send the email
-    await transporter.sendMail(mailOptions);
 
     // Redirect back to the post
     res.redirect(`/code/${req.params.codingId}`);

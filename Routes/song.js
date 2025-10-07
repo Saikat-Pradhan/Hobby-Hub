@@ -200,43 +200,6 @@ router.post("/comment/:songId", async (req, res) => {
       createdBy: req.user._id,
     });
 
-    // Get commenter info from database
-    const commenter = await User.findById(req.user._id).select("fullName");
-    if (!commenter || !commenter.fullName) throw new Error("Commenter info missing");
-
-    // Get song and its owner info
-    const songPost = await Song.findById(req.params.songId).populate({
-      path: "createdBy",
-      select: "fullName email",
-    });
-    if (!songPost || !songPost.createdBy || !songPost.createdBy.email) {
-      throw new Error("Song owner info missing");
-    }
-    const recipientFirstName = songPost.createdBy.fullName?.split(" ")[0] || "there";
-
-    // Prepare email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: songPost.createdBy.email,
-      subject: "🎵 New Comment on Your Song!",
-      text: `
-Hi ${recipientFirstName},
-
-${commenter.fullName} just commented on your song:
-
-"${commentText}"
-
-You can listen to the song and reply here:
-${req.protocol}://${req.get("host")}/song/${req.params.songId}
-
-Keep the music flowing,  
-TuneBoard Team
-      `,
-    };
-
-    // Send email
-    await transporter.sendMail(mailOptions);
-
     // Redirect after success
     res.redirect(`/song/${req.params.songId}`);
   } catch (err) {

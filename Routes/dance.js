@@ -202,50 +202,6 @@ router.post("/comment/:danceId", async (req, res) => {
       createdBy: req.user._id,
     });
 
-    // Fetch commenter details
-    const commenter = await User.findById(req.user._id).select("fullName");
-    if (!commenter || !commenter.fullName) {
-      throw new Error("Commenter info not found.");
-    }
-
-    // Fetch dance post and owner info
-    const dancePost = await Dance.findById(req.params.danceId).populate({
-      path: "createdBy",
-      select: "fullName email",
-    });
-    if (!dancePost || !dancePost.createdBy || !dancePost.createdBy.email) {
-      throw new Error("Dance post or owner info missing.");
-    }
-
-    // Extract first name of owner
-    const recipientFirstName = dancePost.createdBy.fullName?.split(" ")[0] || "there";
-
-    // Commenter full name
-    const commenterName = commenter.fullName;
-
-    // Email setup
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: dancePost.createdBy.email,
-      subject: "💬 New Comment on Your Dance Post!",
-      text: `
-Hey ${recipientFirstName},
-
-${commenterName} commented on your dance post:
-
-"${commentText}"
-
-Check it out:
-${req.protocol}://${req.get("host")}/dance/${req.params.danceId}
-
-Cheers,  
-DanceHub Team
-      `,
-    };
-
-    // Send email
-    await transporter.sendMail(mailOptions);
-
     // Redirect after comment
     res.redirect(`/dance/${req.params.danceId}`);
   } catch (err) {

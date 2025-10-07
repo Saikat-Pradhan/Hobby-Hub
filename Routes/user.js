@@ -18,13 +18,6 @@ const router = Router();
 const memoryStorage = multer.memoryStorage();
 const upload = multer({ storage: memoryStorage });
 
-// // 📝 Render blog creation form
-// router.get("/add", (req, res) => {
-//     return res.render("addBlog", {
-//         user: req.user,
-//     });
-// });
-
 // 🔐 Render sign-in and sign-up pages
 router.get("/signin", (req, res) => res.render("signIn"));
 router.get("/signup", (req, res) => res.render("signUp"));

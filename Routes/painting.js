@@ -161,7 +161,7 @@ router.get("/delete/:id", async (req, res) => {
   }
 });
 
-// 💬 Submit a comment and notify post owner
+// 💬 Submit a comment
 router.post("/comment/:paintingId", async (req, res) => {
   try {
     const commentText = req.body?.content?.trim();
@@ -175,50 +175,6 @@ router.post("/comment/:paintingId", async (req, res) => {
       paintingId: req.params.paintingId,
       createdBy: req.user._id,
     });
-
-    // Fetch commenter info
-    const commenter = await User.findById(req.user._id).select("fullName");
-    if (!commenter || !commenter.fullName) {
-      throw new Error("Commenter info missing.");
-    }
-
-    // Fetch painting and owner info
-    const paintingPost = await Painting.findById(req.params.paintingId).populate({
-      path: "createdBy",
-      select: "fullName email",
-    });
-    if (!paintingPost || !paintingPost.createdBy || !paintingPost.createdBy.email) {
-      throw new Error("Painting post or owner info missing.");
-    }
-
-    // Extract first name of painting owner
-    const recipientFirstName = paintingPost.createdBy.fullName?.split(" ")[0] || "there";
-
-    // Get commenter full name
-    const commenterName = commenter.fullName;
-
-    // Compose email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: paintingPost.createdBy.email,
-      subject: "💬 New Comment on Your Painting!",
-      text: `
-Hi ${recipientFirstName},
-
-${commenterName} just commented on your painting:
-
-"${commentText}"
-
-View it here:
-${req.protocol}://${req.get("host")}/painting/${req.params.paintingId}
-
-Warm wishes,  
-ArtBoard Team
-      `,
-    };
-
-    // Send the email
-    await transporter.sendMail(mailOptions);
 
     // Redirect back to the painting post
     res.redirect(`/painting/${req.params.paintingId}`);

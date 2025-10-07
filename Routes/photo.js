@@ -161,7 +161,7 @@ router.get("/delete/:id", async (req, res) => {
   }
 });
 
-// 💬 Submit a comment and notify post owner
+// 💬 Submit a comment
 router.post("/photoComment/:photoId", async (req, res) => {
   try {
     const commentText = req.body?.content?.trim();
@@ -175,48 +175,6 @@ router.post("/photoComment/:photoId", async (req, res) => {
       photoId: req.params.photoId,
       createdBy: req.user._id,
     });
-
-    // Get commenter info
-    const commenter = await User.findById(req.user._id).select("fullName");
-    if (!commenter || !commenter.fullName) {
-      throw new Error("Commenter info missing.");
-    }
-
-    // Get photo post and owner info
-    const photoPost = await Photo.findById(req.params.photoId).populate({
-      path: "createdBy",
-      select: "fullName email",
-    });
-    if (!photoPost || !photoPost.createdBy || !photoPost.createdBy.email) {
-      throw new Error("Photo or owner info missing.");
-    }
-
-    // Extract first name from owner's full name
-    const recipientFirstName = photoPost.createdBy.fullName?.split(" ")[0] || "there";
-    const commenterName = commenter.fullName;
-
-    // Prepare email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: photoPost.createdBy.email,
-      subject: "📸 New Comment on Your Photo!",
-      text: `
-Hi ${recipientFirstName},
-
-${commenterName} just commented on your photo:
-
-"${commentText}"
-
-View the photo and reply:
-${req.protocol}://${req.get("host")}/photo/${req.params.photoId}
-
-Best,  
-PhotoBoard Team
-      `,
-    };
-
-    // Send email
-    await transporter.sendMail(mailOptions);
 
     // Redirect to photo post
     res.redirect(`/photo/${req.params.photoId}`);

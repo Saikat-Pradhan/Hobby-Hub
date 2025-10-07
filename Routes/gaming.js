@@ -177,39 +177,6 @@ router.post("/comment/:gameId", async (req, res) => {
       createdBy: req.user._id,
     });
 
-    const commenter = await User.findById(req.user._id).select("fullName");
-    const gamePost = await Game.findById(req.params.gameId).populate({
-      path: "createdBy",
-      select: "fullName email",
-    });
-
-    if (!commenter || !gamePost?.createdBy?.email) {
-      throw new Error("User or game post info missing.");
-    }
-
-    const recipientFirstName = gamePost.createdBy.fullName?.split(" ")[0] || "there";
-    const commenterName = commenter.fullName;
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: gamePost.createdBy.email,
-      subject: "💬 New Comment on Your Game Post!",
-      text: `
-Hey ${recipientFirstName},
-
-${commenterName} commented on your game post:
-
-"${commentText}"
-
-Check it out:
-${req.protocol}://${req.get("host")}/game/${req.params.gameId}
-
-Cheers,  
-GameHub Team
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
     res.redirect(`/game/${req.params.gameId}`);
   } catch (err) {
     console.error("Comment error:", err.message);
