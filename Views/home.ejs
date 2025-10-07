@@ -1,63 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <%- include("./Partials/head") %>
-  <title>HomePage</title>
+    <title>HomePage</title>
 </head>
+
 <body>
   <%- include("./Partials/nav") %>
 
-  <div class="container">
-    <% 
-      const sections = [
-        { title: "Songs", items: songs, type: "song" },
-        { title: "Dance", items: dances, type: "dance" },
-        { title: "Paintings", items: paintings, type: "painting" },
-        { title: "Games", items: games, type: "game" },
-        { title: "Codes", items: codes, type: "code" },
-        { title: "Photos", items: photos, type: "photo" }
-      ];
+    <div class="homePage">
+      <div class="container">
+        <% const sections=[ { title: "Songs" , items: songs, type: "song" }, { title: "Dance" , items: dances,
+          type: "dance" }, { title: "Paintings" , items: paintings, type: "painting" }, { title: "Games" , items: games,
+          type: "game" }, { title: "Codes" , items: codes, type: "code" }, { title: "Photos" , items: photos,
+          type: "photo" } ]; const interestMap={ SINGING: "song" , DANCING: "dance" , DRAWING: "painting" ,
+          GAMING: "game" , CODING: "code" , PHOTOGRAPHY: "photo" }; const isGuest=!locals.user; const showAll=isGuest ||
+          locals.user?.interestedFields?.includes("ALL"); %>
 
-      const interestMap = {
-        SINGING: "song",
-        DANCING: "dance",
-        DRAWING: "painting",
-        GAMING: "game",
-        CODING: "code",
-        PHOTOGRAPHY: "photo"
-      };
+          <% sections.forEach(section=> {
+            const shouldDisplay = showAll ||
+            locals.user?.interestedFields?.includes(Object.keys(interestMap).find(k => interestMap[k] ===
+            section.type));
 
-      const isGuest = !locals.user;
-      const showAll = isGuest || locals.user?.interestedFields?.includes("ALL");
-    %>
+            if (shouldDisplay && section.items?.length) { %>
+            <h1 class="mt-4" style="color: rgb(249, 249, 254)">
+              <%= section.title %>:
+            </h1>
+            <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
+              <% section.items.forEach(item=> { %>
+                <div class="col">
+                  <div class="card h-100 shadow-sm text-white bg-black" style="width: 18rem;">
+                    <img src="<%= item.coverImageURL %>" class="card-img-top" style="height: 5cm;"
+                      alt="<%= item.title %>" loading="lazy">
+                    <div class="card-body">
+                      <h5 class="card-title">
+                        <%= item.title %>
+                      </h5>
 
-    <% sections.forEach(section => {
-         const shouldDisplay = showAll || 
-           locals.user?.interestedFields?.includes(Object.keys(interestMap).find(k => interestMap[k] === section.type));
+                      <% if (section.type==="game" && item.body) { %>
+                        <p class="card-text" style="font-size: 0.9rem;">
+                          <%= item.body.slice(0, 100) %>...
+                        </p>
+                        <% } %>
 
-         if (shouldDisplay && section.items?.length) { %>
-      <h1 class="mt-4" style="color: blue"><%= section.title %>:</h1>
-      <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
-        <% section.items.forEach(item => { %>
-          <div class="col">
-            <div class="card h-100 shadow-sm" style="width: 18rem;">
-              <img src="<%= item.coverImageURL %>" class="card-img-top" style="height: 5cm;" alt="<%= item.title %>" loading="lazy">
-              <div class="card-body">
-                <h5 class="card-title"><%= item.title %></h5>
-
-                <% if (section.type === "game" && item.body) { %>
-                  <p class="card-text" style="font-size: 0.9rem;"><%= item.body.slice(0, 100) %>...</p>
-                <% } %>
-
-                <a href="/<%= section.type %>/<%= item._id %>" class="btn btn-primary">View</a>
-              </div>
+                          <a href="/<%= section.type %>/<%= item._id %>" class="btn btn-primary">View</a>
+                    </div>
+                  </div>
+                </div>
+                <% }) %>
             </div>
-          </div>
-        <% }) %>
+            <% } }) %>
       </div>
-    <% } }) %>
-  </div>
+    </div>
 
-  <%- include("./Partials/scripts") %>
+    <%- include("./Partials/scripts") %>
 </body>
+
 </html>
